@@ -1,0 +1,6 @@
+== PagePatcher
+
+PagePatcher is the solution to a simple problem--how do I edit, or patch, a public website and let
+others see the change, without actually pushing something live? I make CSS and Javascript edits to live
+pages using Firebug all the time, but I can't share them anyone. PagePatcher lets you specify a URL, the
+patch to apply (CSS or Javascript) and then provides a URL so others can see the change.
