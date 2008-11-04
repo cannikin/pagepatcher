@@ -1,0 +1,31 @@
+<% form_for(@patch) do |f| %>
+  <%= f.error_messages %>
+
+  <p>
+    <%= f.label :url %><br />
+    <%= f.text_field :url %>
+  </p>
+  <p>
+    <%= f.label :html %><br />
+    <%= f.text_area :html %>
+  </p>
+  <p>
+    <%= f.label :css %><br />
+    <%= f.text_area :css %>
+  </p>
+  <p>
+    <%= f.label :js %><br />
+    <%= f.text_area :js %>
+  </p>
+  <p>
+    <%= f.label :path %><br />
+    <%= f.text_field :path %>
+  </p>
+  <p>
+    <%= f.label :notes %><br />
+    <%= f.text_area :notes %>
+  </p>
+  <p>
+    <%= f.submit "Save" %>
+  </p>
+<% end %>

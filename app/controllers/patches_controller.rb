@@ -2,6 +2,9 @@ require 'hpricot'
 require 'open-uri'
 
 class PatchesController < ApplicationController
+  
+  PATH_LENGTH = 5
+  
   # GET /patches
   # GET /patches.xml
   def index
@@ -16,7 +19,12 @@ class PatchesController < ApplicationController
   # GET /patches/1
   # GET /patches/1.xml
   def show
-    @patch = Patch.find(params[:id])
+    
+    if params[:path]
+      @patch = Patch.find_by_path(params[:path])
+    else
+      @patch = Patch.find(params[:id])
+    end
     
     # hpricot the source code and append any JS patch to the end
     @output = Hpricot(@patch.html)
@@ -56,6 +64,10 @@ class PatchesController < ApplicationController
     @patch.url.strip!
     
     # append http on the URL if it isn't already there
+    if !@patch.url.match(/^https?:\/\//)
+      @patch.url = 'http://' + @patch.url
+    end
+    # parse the URL so we can access the parts
     @page_url = URI.parse(@patch.url)
     @patch.url = @page_url.to_s
     # append proper <script> wrappers if they're not there
@@ -66,6 +78,9 @@ class PatchesController < ApplicationController
     if !@patch.css.match(/^<style.*?<\/style>$/m)
       @patch.css = '<style type="text/css">' + @patch.css + '</style>'
     end
+    
+    # set the buffer big so larger pages will still load
+    Hpricot.buffer_size = 262144
     
     # go get the source of the page
     source = Hpricot(open(@patch.url))
@@ -107,12 +122,16 @@ class PatchesController < ApplicationController
       end
     end
     
+    # stick the modified source into the record
     @patch.html = source.to_s
+    
+    # build a unique path to this page
+    @patch.path = generate_random_path
     
     respond_to do |format|
       if @patch.save
         flash[:notice] = 'Patch was successfully created.'
-        format.html { redirect_to(@patch) }
+        format.html { redirect_to(pretty_path(:path => @patch.path)) }
         format.xml  { render :xml => @patch, :status => :created, :location => @patch }
       else
         format.html { render :action => "new" }
@@ -149,4 +168,19 @@ class PatchesController < ApplicationController
       format.xml  { head :ok }
     end
   end
+  
+  private
+  def generate_random_path
+    unique = false
+    until unique
+      path = ''
+      chars = ("a".."z").to_a + ("A".."Z").to_a + ("0".."9").to_a
+      1.upto(PATH_LENGTH) { |i| path << chars[rand(chars.size-1)] }
+      unless Patch.find_by_path(path)
+        unique = true
+      end
+    end
+    return path
+  end
+    
 end
