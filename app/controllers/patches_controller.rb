@@ -49,14 +49,15 @@ class PatchesController < ApplicationController
   # POST /patches.xml
   def create
     @patch = Patch.new(params[:patch])
+    
+    # remove any beginning or trailing whitespace
     @patch.js.strip!
     @patch.css.strip!
     @patch.url.strip!
     
-    # append http:// on the URL if it isn't already there
-    if !@patch.url.match(/^https?:\/\//)
-      @patch.url = 'http://' + @patch.url.to_s
-    end
+    # append http on the URL if it isn't already there
+    @page_url = URI.parse(@patch.url)
+    @patch.url = @page_url.to_s
     # append proper <script> wrappers if they're not there
     if !@patch.js.match(/^<script.*?<\/script>$/m)
       @patch.js = '<script type="text/javascript">' + @patch.js + '</script>'
@@ -67,7 +68,46 @@ class PatchesController < ApplicationController
     end
     
     # go get the source of the page
-    @patch.html = open(@patch.url).read
+    source = Hpricot(open(@patch.url))
+    
+    # update all relative links in the source and convert to absolute
+    source.search('a,img,link,script').each do |element|
+      puts element
+      if element.attributes['href']
+        puts 'href'
+        link = element.attributes['href']
+        attribute = 'href'
+      elsif element.attributes['src']
+        puts 'src'
+        link = element.attributes['src']
+        attribute = 'src'
+      else
+        puts 'nil'
+        link = nil
+        attribute = nil
+      end
+
+      if link
+        begin
+          url = URI.parse(link)
+          unless url.path.nil?
+            if url.scheme.nil?
+              url.scheme = @page_url.scheme
+              if url.host.nil?
+                url.host = @page_url.host
+              end
+            end
+            element.set_attribute(attribute,url.to_s)
+          else
+            element.set_attribute(attribute,'#')
+          end
+        rescue URI::InvalidURIError
+          logger.error("\n\nINVALID URL: #{link}\n\n")
+        end
+      end
+    end
+    
+    @patch.html = source.to_s
     
     respond_to do |format|
       if @patch.save
