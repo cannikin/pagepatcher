@@ -3,9 +3,6 @@
 <table>
   <tr>
     <th>Url</th>
-    <th>Html</th>
-    <th>Css</th>
-    <th>Js</th>
     <th>Path</th>
     <th>Notes</th>
   </tr>
@@ -13,9 +10,6 @@
 <% for patch in @patches %>
   <tr>
     <td><%=h patch.url %></td>
-    <td><%=h patch.html %></td>
-    <td><%=h patch.css %></td>
-    <td><%=h patch.js %></td>
     <td><%=h patch.path %></td>
     <td><%=h patch.notes %></td>
     <td><%= link_to 'Show', patch %></td>
