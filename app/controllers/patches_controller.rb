@@ -1,3 +1,4 @@
+require 'mechanize'
 require 'hpricot'
 require 'open-uri'
 
@@ -81,23 +82,22 @@ class PatchesController < ApplicationController
     
     # set the buffer big so larger pages will still load
     Hpricot.buffer_size = 262144
+  
+    agent = WWW::Mechanize.new
+    source = agent.get(@patch.url)
     
     # go get the source of the page
-    source = Hpricot(open(@patch.url))
+    # source = Hpricot(open(@patch.url))
     
     # update all relative links in the source and convert to absolute
     source.search('a,img,link,script').each do |element|
-      puts element
       if element.attributes['href']
-        puts 'href'
         link = element.attributes['href']
         attribute = 'href'
       elsif element.attributes['src']
-        puts 'src'
         link = element.attributes['src']
         attribute = 'src'
       else
-        puts 'nil'
         link = nil
         attribute = nil
       end
@@ -113,8 +113,8 @@ class PatchesController < ApplicationController
               end
             end
             element.set_attribute(attribute,url.to_s)
-          else
-            element.set_attribute(attribute,'#')
+          #else
+          #  element.set_attribute(attribute,'#')
           end
         rescue URI::InvalidURIError
           logger.error("\n\nINVALID URL: #{link}\n\n")
@@ -123,8 +123,8 @@ class PatchesController < ApplicationController
     end
     
     # stick the modified source into the record
-    @patch.html = source.to_s
-    
+    @patch.html = source.parser.to_s
+
     # build a unique path to this page
     @patch.path = generate_random_path
     
